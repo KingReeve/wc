@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-
+use std::io::{self, Read};
 
 fn count_chars(file:&str) -> u64{
     let mut count:u64 = 0;
@@ -35,37 +35,51 @@ fn count_lines(file:&str) -> u64{
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        eprintln!("Usage: wc_rs <file_path> [options]");
+        eprintln!("Usage: wc <file_path> [options]");
         eprintln!("Options: w (words), l (lines), c (bytes), m (chars)");
-        return;
     }
+    
+    let (contents, file_path) =
+        if args.len() < 2 {
+            let mut buffer = String::new();
+            io::stdin()
+                .read_to_string(&mut buffer)
+                .expect("Failed to read from stdin");
+            (buffer, None)
+        } else {
+            let file_path = &args[1];
+            let contents = fs::read_to_string(file_path).expect("Failed to read file");
+            (contents, Some(file_path))
+        };
+    
+    let file_path_str = match file_path {
+        Some(name) => format!("{}", name),
+        None => "".to_string(),
+    };
 
-    let file_path = &args[1];
-    let contents = fs::read_to_string(file_path).expect("Error reading file.");
-
-    if args.len() == 2 {
+    if args.len() <= 2 {
         println!(
             "{} {} {} {}",
             count_lines(&contents),
             count_words(&contents),
             count_bytes(&contents),
-            file_path,
+            file_path_str
         );
         return;
     }
 
     for i in &args[2..]{
         if i=="c"{
-            println!("{} {file_path}",count_bytes(&contents));
+            println!("{} {}",count_bytes(&contents),file_path_str);
         }
         if i=="l"{
-            println!("{} {file_path}",count_lines(&contents));
+            println!("{} {}",count_lines(&contents),file_path_str);
         }
         if i=="w"{
-            println!("{} {file_path}",count_words(&contents));
+            println!("{} {}",count_words(&contents),file_path_str);
         }
         if i=="m"{
-            println!("{} {file_path}",count_chars(&contents));
+            println!("{} {}",count_chars(&contents),file_path_str);
         }
     }
 }
